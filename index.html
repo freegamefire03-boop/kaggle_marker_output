@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repository File Downloader</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons for clean visuals -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-[#0d1117] text-[#c9d1d9] min-h-screen font-sans antialiased selection:bg-blue-500/30">
+
+    <div class="max-w-4xl mx-auto px-4 py-12">
+        <!-- Header -->
+        <header class="mb-8 border-b border-[#21262d] pb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-semibold text-[#f0f6fc] flex items-center gap-2">
+                    <i data-lucide="folder-git-2" class="text-blue-400 w-6 h-6"></i>
+                    Repo Root Downloader
+                </h1>
+                <p class="text-sm text-[#8b949e] mt-1">Select the repo root folder to auto-populate all files at this level.</p>
+            </div>
+            
+            <!-- Hidden native input to read folder structure safely -->
+            <input type="file" id="folder-picker" webkitdirectory directory class="hidden">
+            
+            <!-- Clickable Button Trigger -->
+            <button id="trigger-btn" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm rounded-lg shadow-sm transition-all duration-150 active:scale-95 whitespace-nowrap">
+                <i data-lucide="folder-open" class="w-4 h-4"></i>
+                Scan Current Folder
+            </button>
+        </header>
+
+        <!-- Files List Container -->
+        <main class="bg-[#161b22] border border-[#30363d] rounded-xl overflow-hidden shadow-xl">
+            <div id="file-list" class="divide-y divide-[#21262d]">
+                <!-- Initial State -->
+                <div id="empty-state" class="p-12 text-center space-y-3">
+                    <i data-lucide="scan" class="w-8 h-8 text-[#8b949e] mx-auto opacity-60 animate-pulse"></i>
+                    <p class="text-sm text-[#8b949e]">Click "Scan Current Folder" and choose this directory to list files automatically.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const triggerBtn = document.getElementById('trigger-btn');
+        const folderPicker = document.getElementById('folder-picker');
+        const fileListContainer = document.getElementById('file-list');
+
+        // Route the button click directly to our hidden directory input picker
+        triggerBtn.addEventListener('click', () => folderPicker.click());
+
+        folderPicker.addEventListener('change', (event) => {
+            const allFiles = Array.from(event.target.files);
+            
+            // Filter out files so it ONLY displays items at the root level of the picked directory
+            // webkitRelativePath format matches: "SelectedFolder/fileName.ext" (exactly 2 parts when split by "/")
+            const rootFiles = allFiles.filter(file => {
+                const pathParts = file.webkitRelativePath.split('/');
+                return pathParts.length === 2 && file.name !== 'index.html';
+            });
+
+            if (rootFiles.length === 0) {
+                fileListContainer.innerHTML = `
+                    <div class="p-12 text-center text-[#8b949e] text-sm">
+                        No other files found directly at the root level of this folder.
+                    </div>
+                `;
+                return;
+            }
+
+            // Wipe out the loading/empty placeholder state
+            fileListContainer.innerHTML = '';
+
+            // Generate rows dynamically
+            rootFiles.forEach(file => {
+                // Create a temporary object URL out of the file stream so the local download action works immediately
+                const downloadUrl = URL.createObjectURL(file);
+
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between p-4 hover:bg-[#1f242c] transition-colors duration-150 group";
+
+                row.innerHTML = `
+                    <div class="flex items-center gap-3 min-w-0">
+                        <i data-lucide="file-text" class="text-[#8b949e] w-5 h-5 flex-shrink-0 group-hover:text-blue-400 transition-colors"></i>
+                        <span class="text-sm font-medium truncate text-[#c9d1d9] group-hover:text-[#f0f6fc] transition-colors">
+                            ${file.name}
+                        </span>
+                    </div>
+                    <a href="${downloadUrl}" download="${file.name}" 
+                       class="p-2 rounded-lg bg-[#21262d] border border-[#30363d] text-[#c9d1d9] hover:bg-blue-600 hover:text-white hover:border-transparent transition-all duration-150 flex items-center justify-center shadow-sm"
+                       title="Download ${file.name}">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                    </a>
+                `;
+                fileListContainer.appendChild(row);
+            });
+
+            // Re-render the visual Lucide graphics for the new list elements
+            lucide.createIcons();
+        });
+
+        // Initialize background icons on first load
+        lucide.createIcons();
+    </script>
+</body>
+</html>
